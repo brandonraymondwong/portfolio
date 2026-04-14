@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ':*)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:skills.sh)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh auth:*)",
+      "Bash(git --version)"
+    ]
+  }
+}
