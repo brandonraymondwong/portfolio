@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brandon R. Wong</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #0a1628;
+      --navy2:  #112240;
+      --teal:   #64ffda;
+      --teal2:  #0d9488;
+      --slate:  #8892b0;
+      --light:  #ccd6f6;
+      --white:  #e6f1ff;
+      --font:   'Segoe UI', system-ui, sans-serif;
+      --mono:   'Courier New', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--navy);
+      color: var(--slate);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--teal); text-decoration: none; transition: color .2s; }
+    a:hover { color: #fff; }
+
+    /* ── Layout helpers ───────────────────────────────────── */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .section    { padding: 80px 0; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--light);
+      margin-bottom: 40px;
+      white-space: nowrap;
+    }
+    .section-title span { color: var(--teal); font-family: var(--mono); font-size: 1rem; font-weight: 400; }
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 100%;
+      height: 1px;
+      background: var(--navy2);
+    }
+
+    /* ── Nav ──────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(10,22,40,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(100,255,218,0.08);
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: var(--mono);
+      color: var(--teal);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--slate);
+    }
+
+    .nav-links a:hover { color: var(--teal); }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding-top: 64px;
+    }
+
+    .hero-inner { max-width: 700px; }
+
+    .hero-greeting {
+      font-family: var(--mono);
+      color: var(--teal);
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+
+    .hero-name {
+      font-size: clamp(2.4rem, 7vw, 4.5rem);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.1;
+      letter-spacing: -1px;
+    }
+
+    .hero-tagline {
+      font-size: clamp(1.4rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--slate);
+      line-height: 1.2;
+      margin-top: 6px;
+      margin-bottom: 24px;
+    }
+
+    .hero-desc {
+      font-size: 1.05rem;
+      max-width: 520px;
+      margin-bottom: 40px;
+      line-height: 1.75;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      padding: 14px 32px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      transition: background .2s, color .2s;
+    }
+
+    .hero-cta:hover { background: rgba(100,255,218,0.1); color: var(--teal); }
+
+    /* ── About ────────────────────────────────────────────── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .about-text p { margin-bottom: 16px; }
+
+    .about-highlights {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .about-highlights li {
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--slate);
+    }
+
+    .about-highlights li::before {
+      content: '▸ ';
+      color: var(--teal);
+    }
+
+    .about-photo-box {
+      position: relative;
+    }
+
+    .photo-placeholder {
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--navy2);
+      border: 2px solid var(--teal);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .photo-placeholder svg { opacity: 0.25; }
+
+    .photo-frame {
+      position: absolute;
+      top: 14px; left: 14px;
+      width: 100%; height: 100%;
+      border: 2px solid var(--teal);
+      border-radius: 4px;
+      z-index: -1;
+      transition: transform .2s;
+    }
+
+    .about-photo-box:hover .photo-frame { transform: translate(-4px,-4px); }
+
+    /* ── Experience ───────────────────────────────────────── */
+    .exp-tabs { display: flex; flex-direction: column; gap: 0; }
+
+    .exp-list { display: flex; gap: 0; }
+
+    .exp-tab-labels {
+      display: flex;
+      flex-direction: column;
+      border-left: 2px solid var(--navy2);
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+
+    .tab-label {
+      padding: 12px 20px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--slate);
+      border-left: 2px solid transparent;
+      margin-left: -2px;
+      transition: color .2s, border-color .2s, background .2s;
+      white-space: nowrap;
+    }
+
+    .tab-label:hover { color: var(--teal); background: rgba(100,255,218,0.05); }
+
+    .tab-label.active {
+      color: var(--teal);
+      border-left-color: var(--teal);
+      background: rgba(100,255,218,0.05);
+    }
+
+    .exp-panels { flex: 1; padding-left: 36px; }
+
+    .exp-panel { display: none; }
+    .exp-panel.active { display: block; }
+
+    .exp-panel h3 {
+      color: var(--light);
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    .exp-panel h3 .company { color: var(--teal); }
+
+    .exp-meta {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--slate);
+      margin-bottom: 18px;
+    }
+
+    .exp-panel ul { list-style: none; }
+
+    .exp-panel ul li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+
+    .exp-panel ul li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--teal);
+    }
+
+    /* ── Education ────────────────────────────────────────── */
+    .edu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+    .edu-card {
+      background: var(--navy2);
+      border: 1px solid rgba(100,255,218,0.08);
+      border-radius: 6px;
+      padding: 28px;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .edu-card:hover { transform: translateY(-4px); border-color: rgba(100,255,218,0.25); }
+
+    .edu-school {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--light);
+      margin-bottom: 4px;
+    }
+
+    .edu-degree {
+      color: var(--teal);
+      font-size: 0.88rem;
+      font-family: var(--mono);
+      margin-bottom: 10px;
+    }
+
+    .edu-details { font-size: 0.85rem; }
+    .edu-details li { list-style: none; padding-left: 14px; margin-bottom: 4px; position: relative; }
+    .edu-details li::before { content: '▸'; position: absolute; left: 0; color: var(--teal); }
+
+    /* ── Skills / Focus ───────────────────────────────────── */
+    .focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+    .focus-card {
+      background: var(--navy2);
+      border: 1px solid rgba(100,255,218,0.08);
+      border-radius: 6px;
+      padding: 24px;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .focus-card:hover { transform: translateY(-4px); border-color: rgba(100,255,218,0.25); }
+
+    .focus-icon {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+    }
+
+    .focus-card h4 {
+      color: var(--light);
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+
+    .focus-card p { font-size: 0.85rem; }
+
+    /* ── Contact ──────────────────────────────────────────── */
+    #contact {
+      text-align: center;
+      padding: 100px 0;
+    }
+
+    #contact .section-title { justify-content: center; }
+    #contact .section-title::after { display: none; }
+
+    .contact-heading {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      color: var(--white);
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .contact-sub {
+      max-width: 480px;
+      margin: 0 auto 36px;
+      font-size: 0.95rem;
+    }
+
+    .contact-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(100,255,218,0.3);
+      padding: 10px 22px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--teal);
+      transition: background .2s, border-color .2s;
+    }
+
+    .contact-link:hover { background: rgba(100,255,218,0.08); border-color: var(--teal); color: var(--teal); }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* ── Gradient Dots Background ────────────────────────── */
+    /*
+     * Ported from the GradientDots React/framer-motion component.
+     * Defaults: dotSize=8, spacing=10, duration=30s, colorCycleDuration=6s
+     * hexSpacing = spacing * 1.732 ≈ 17.32px
+     */
+    .gradient-dots {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      --bg: var(--navy);
+      --dot: 8px;
+      --sp: 10px;
+      --hsp: 17.32px; /* 10 * 1.732 */
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 50% 50%, transparent 1.5px, var(--bg) 0 var(--dot), transparent var(--dot)),
+        radial-gradient(circle at 50% 50%, transparent 1.5px, var(--bg) 0 var(--dot), transparent var(--dot)),
+        radial-gradient(circle at 50% 50%, #f00, transparent 60%),
+        radial-gradient(circle at 50% 50%, #ff0, transparent 60%),
+        radial-gradient(circle at 50% 50%, #0f0, transparent 60%),
+        radial-gradient(ellipse at 50% 50%, #00f, transparent 60%);
+      background-size:
+        var(--sp) var(--hsp),
+        var(--sp) var(--hsp),
+        200% 200%,
+        200% 200%,
+        200% 200%,
+        200% var(--hsp);
+      background-position:
+        0px 0px,
+        5px 8.66px,
+        800% 400%,
+        1000% -400%,
+        -1200% -600%,
+        400% var(--hsp);
+      animation:
+        gdots-move 30s linear infinite,
+        gdots-hue  6s  linear infinite;
+    }
+
+    @keyframes gdots-move {
+      from {
+        background-position:
+          0px 0px,
+          5px 8.66px,
+          800% 400%,
+          1000% -400%,
+          -1200% -600%,
+          400% 17.32px;
+      }
+      to {
+        background-position:
+          0px 0px,
+          5px 8.66px,
+          0% 0%,
+          0% 0%,
+          0% 0%,
+          0% 0%;
+      }
+    }
+
+    @keyframes gdots-hue {
+      from { filter: hue-rotate(0deg); }
+      to   { filter: hue-rotate(360deg); }
+    }
+
+    /* Hero needs position:relative so the absolute dots layer is clipped */
+    #hero { position: relative; overflow: hidden; }
+
+    /* Hero content must sit above the dots layer */
+    #hero .container { position: relative; z-index: 1; }
+
+    /* Subtle dark vignette so hero text stays legible over the dots */
+    #hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(ellipse at 30% 50%, transparent 30%, rgba(10,22,40,0.72) 100%);
+      pointer-events: none;
+    }
+
+    /* ── Scroll fade-in ───────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: none; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      nav { padding: 0 20px; }
+      .nav-links { gap: 16px; }
+      .about-grid { grid-template-columns: 1fr; }
+      .about-photo-box { display: none; }
+      .exp-tab-labels { min-width: 130px; }
+      .edu-grid { grid-template-columns: 1fr; }
+      .focus-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .exp-list { flex-direction: column; }
+      .exp-tab-labels { flex-direction: row; overflow-x: auto; border-left: none; border-bottom: 2px solid var(--navy2); }
+      .tab-label { border-left: none; border-bottom: 2px solid transparent; margin-left: 0; margin-bottom: -2px; }
+      .tab-label.active { border-left: none; border-bottom-color: var(--teal); }
+      .exp-panels { padding-left: 0; padding-top: 24px; }
+      .focus-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">BW</div>
+  <ul class="nav-links">
+    <li><a href="#about"><span style="color:var(--teal)">01.</span> About</a></li>
+    <li><a href="#experience"><span style="color:var(--teal)">02.</span> Experience</a></li>
+    <li><a href="#education"><span style="color:var(--teal)">03.</span> Education</a></li>
+    <li><a href="#focus"><span style="color:var(--teal)">04.</span> Focus</a></li>
+    <li><a href="#contact"><span style="color:var(--teal)">05.</span> Contact</a></li>
+  </ul>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="gradient-dots" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <p class="hero-greeting">Hi, my name is</p>
+      <h1 class="hero-name">Brandon Wong.</h1>
+      <h2 class="hero-tagline">I work at the intersection of<br>healthcare, finance, and strategy.</h2>
+      <p class="hero-desc">
+        MBA candidate at The Wharton School with a background in private equity and management consulting.
+        I'm focused on expanding access, improving quality, and reducing costs in healthcare services.
+      </p>
+      <a href="#about" class="hero-cta">Learn more about me</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── About ────────────────────────────────────────────────── -->
+<section id="about" class="section">
+  <div class="container">
+    <h2 class="section-title"><span>01.</span> About Me</h2>
+    <div class="about-grid fade-in">
+      <div class="about-text">
+        <p>
+          I'm an MBA candidate at The Wharton School (Finance and Health Care Management) exploring opportunities
+          to apply my private equity and consulting experience to improving healthcare services — expanding access,
+          improving quality, and reducing costs.
+        </p>
+        <p>
+          Born in Minnesota and raised in South Carolina, I studied Economics and Philosophy at Vanderbilt University
+          before beginning my career at Bain &amp; Company in Atlanta. From there I joined Charlesbank Capital Partners
+          in Boston, where I worked across healthcare and business services as a Private Equity Associate.
+        </p>
+        <p>
+          Outside of work I'm a Tottenham Hotspur supporter, former Grade 7 soccer referee, musical theater
+          enthusiast, and Wharton Hockey League commissioner — among other things.
+        </p>
+        <ul class="about-highlights">
+          <li>Private Equity (Healthcare, B2C)</li>
+          <li>Management Consulting</li>
+          <li>LBO / Financial Modeling</li>
+          <li>Commercial Due Diligence</li>
+          <li>Healthcare Services</li>
+          <li>Value Creation</li>
+        </ul>
+      </div>
+
+      <div class="about-photo-box">
+        <div class="photo-placeholder">
+          <!-- Silhouette placeholder — swap with <img src="photo.jpg"> -->
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="42" r="26" fill="#64ffda"/>
+            <ellipse cx="60" cy="100" rx="42" ry="28" fill="#64ffda"/>
+          </svg>
+        </div>
+        <div class="photo-frame"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Experience ───────────────────────────────────────────── -->
+<section id="experience" class="section">
+  <div class="container">
+    <h2 class="section-title"><span>02.</span> Experience</h2>
+    <div class="exp-list fade-in">
+      <div class="exp-tab-labels" id="tab-labels">
+        <div class="tab-label active" data-tab="0">Elevance Health</div>
+        <div class="tab-label" data-tab="1">Charlesbank</div>
+        <div class="tab-label" data-tab="2">Bain &amp; Co.</div>
+        <div class="tab-label" data-tab="3">Capital One</div>
+        <div class="tab-label" data-tab="4">Sound Physicians</div>
+      </div>
+
+      <div class="exp-panels">
+
+        <!-- Elevance -->
+        <div class="exp-panel active" data-panel="0">
+          <h3>Consulting Intern — <span class="company">Elevance Health</span></h3>
+          <p class="exp-meta">May 2025 – Aug 2025 · New York, NY</p>
+          <ul>
+            <li>Cross-functional role under the Medicaid Chief Growth Officer focused on maternal health RFP strategy and Whole Health initiatives.</li>
+            <li>Contributed to strategic planning across Medicaid growth priorities in a summer internship role.</li>
+          </ul>
+        </div>
+
+        <!-- Charlesbank -->
+        <div class="exp-panel" data-panel="1">
+          <h3>Private Equity Associate — <span class="company">Charlesbank Capital Partners</span></h3>
+          <p class="exp-meta">Aug 2022 – Jul 2024 · Boston, MA · $4.5B fund</p>
+          <ul>
+            <li>Managed deal processes from sourcing through diligence, execution, and value creation across Healthcare and Business &amp; Consumer Services sector teams.</li>
+            <li><strong style="color:var(--light)">Front Row Group</strong> — Decomposed margin trends across 200+ customers over 5 years including price/volume/mix and gross margin analysis by cost line item.</li>
+            <li><strong style="color:var(--light)">Perspective Financial Group</strong> — Built LBO model and a 10,000-sample Monte Carlo simulation; led closing funds flow for a £250–500M cross-border transaction.</li>
+            <li><strong style="color:var(--light)">Tecomet</strong> (portfolio company) — Drove $3M+ of operational initiatives across procurement, product portfolio management, and operating model.</li>
+            <li>Developed thematic and sourcing materials for sub-sectors within alternative sites of care and pharmacy.</li>
+          </ul>
+        </div>
+
+        <!-- Bain -->
+        <div class="exp-panel" data-panel="2">
+          <h3>Associate Consultant — <span class="company">Bain &amp; Company</span></h3>
+          <p class="exp-meta">Aug 2020 – Jul 2022 · Atlanta, GA</p>
+          <ul>
+            <li>Generalist consultant with experience in Private Equity Group (PEG) and general practice across healthcare, fintech, education, aerospace, business services, and transportation/logistics.</li>
+            <li>PE diligence of specialist physician group (100+ physicians): modeled $5M+ revenue opportunity from new adjacency and identified $6M in commercial payer rate uplift.</li>
+            <li>Built a Tableau tool to visualize 500+ patient survey responses across demographics for physician group client.</li>
+            <li>Supported $500M–$1B strategic acquisition for publicly traded business services company; modeled market size and synergy valuation for deal closed in Q1 2022.</li>
+          </ul>
+        </div>
+
+        <!-- Capital One -->
+        <div class="exp-panel" data-panel="3">
+          <h3>Product Management &amp; Analytics Intern — <span class="company">Capital One</span></h3>
+          <p class="exp-meta">Jun 2019 – Aug 2019 · Washington D.C.</p>
+          <ul>
+            <li>Worked in the Mainstreet credit card division on an initiative to increase AutoPay enrollment.</li>
+            <li>Analyzed product metrics and supported PM team in designing enrollment improvements.</li>
+          </ul>
+        </div>
+
+        <!-- Sound Physicians -->
+        <div class="exp-panel" data-panel="4">
+          <h3>Revenue Cycle Analyst — <span class="company">Sound Physicians</span></h3>
+          <p class="exp-meta">May 2018 – Aug 2018 · Brentwood, TN</p>
+          <ul>
+            <li>Contributed to a billing vendor transition by analyzing payer and patient data and testing charges.</li>
+            <li>Early healthcare industry exposure that informed later interest in health services finance.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Education ─────────────────────────────────────────────── -->
+<section id="education" class="section">
+  <div class="container">
+    <h2 class="section-title"><span>03.</span> Education</h2>
+    <div class="edu-grid fade-in">
+
+      <div class="edu-card">
+        <div class="edu-school">The Wharton School, University of Pennsylvania</div>
+        <div class="edu-degree">MBA — Finance &amp; Health Care Management</div>
+        <p class="exp-meta" style="margin-bottom:14px">2024 – 2026 · Philadelphia, PA</p>
+        <ul class="edu-details">
+          <li>Joseph Wharton Fellowship</li>
+          <li>Private Equity &amp; Venture Capital Club</li>
+          <li>Health Care Club</li>
+          <li>Entrepreneurship Club (Co-Head, Careers &amp; Treks)</li>
+          <li>Wharton Health Care Business Conference</li>
+          <li>Wharton Hockey League (Commissioner)</li>
+          <li>Wharton Follies (Cast)</li>
+        </ul>
+      </div>
+
+      <div class="edu-card">
+        <div class="edu-school">Vanderbilt University</div>
+        <div class="edu-degree">BA — Economics &amp; Philosophy; Minor in Chinese</div>
+        <p class="exp-meta" style="margin-bottom:14px">2017 – 2020 · Nashville, TN · GPA 3.9 · GMAT 780</p>
+        <ul class="edu-details">
+          <li>magna cum laude</li>
+          <li>Vanderbilt Student Leadership Award</li>
+          <li>Dean's List (all semesters)</li>
+          <li>Experience Vanderbilt (Co-President)</li>
+          <li>IFC VP of Finance &amp; Records</li>
+          <li>Undergraduate Research Assistant, Owen GSM</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Focus Areas ────────────────────────────────────────────── -->
+<section id="focus" class="section">
+  <div class="container">
+    <h2 class="section-title"><span>04.</span> Focus Areas</h2>
+    <div class="focus-grid fade-in">
+
+      <div class="focus-card">
+        <div class="focus-icon">🏥</div>
+        <h4>Healthcare Services</h4>
+        <p>Deep exposure to alternative sites of care, physician groups, pharmacy, and health plan strategy through both PE diligence and in-house consulting.</p>
+      </div>
+
+      <div class="focus-card">
+        <div class="focus-icon">📊</div>
+        <h4>Private Equity &amp; M&amp;A</h4>
+        <p>End-to-end deal experience across sourcing, diligence, execution, and post-close value creation in a $4.5B fund.</p>
+      </div>
+
+      <div class="focus-card">
+        <div class="focus-icon">🔍</div>
+        <h4>Commercial Due Diligence</h4>
+        <p>Market sizing, competitive positioning, customer research, and revenue analysis for PE and corporate M&amp;A transactions.</p>
+      </div>
+
+      <div class="focus-card">
+        <div class="focus-icon">📈</div>
+        <h4>Financial Modeling</h4>
+        <p>LBO models, Monte Carlo simulations, synergy valuations, and scenario analysis for transactions ranging from $500M to $1B+.</p>
+      </div>
+
+      <div class="focus-card">
+        <div class="focus-icon">⚙️</div>
+        <h4>Operational Value Creation</h4>
+        <p>Driving measurable impact at portfolio companies through procurement optimization, product portfolio rationalization, and operating model design.</p>
+      </div>
+
+      <div class="focus-card">
+        <div class="focus-icon">🌐</div>
+        <h4>Strategy &amp; Growth</h4>
+        <p>Long-term strategy, market entry, and growth initiatives drawing on Bain general practice experience across six industries.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Contact ────────────────────────────────────────────────── -->
+<section id="contact">
+  <div class="container">
+    <p class="section-title" style="justify-content:center;font-family:var(--mono);font-size:.9rem;color:var(--teal);display:block;text-align:center;margin-bottom:16px">05. What's Next?</p>
+    <h2 class="contact-heading">Get In Touch</h2>
+    <p class="contact-sub">
+      I'm currently open to conversations about healthcare services, private equity, strategy, and MBA recruiting opportunities.
+      Feel free to reach out — I'm always happy to connect.
+    </p>
+    <div class="contact-links fade-in">
+      <a class="contact-link" href="mailto:wongbr@wharton.upenn.edu">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+        wongbr@wharton.upenn.edu
+      </a>
+      <a class="contact-link" href="https://www.linkedin.com/in/brandon-r-wong" target="_blank" rel="noopener">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2zm2-6a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+        linkedin.com/in/brandon-r-wong
+      </a>
+      <a class="contact-link" href="tel:+18033895573">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16l.92.92z"/></svg>
+        +1 803 389 5573
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <p style="color:var(--slate)">Designed &amp; built by Brandon R. Wong &mdash; Philadelphia, PA</p>
+</footer>
+
+<!-- ── Scripts ────────────────────────────────────────────────── -->
+<script>
+  // Tab switcher
+  document.getElementById('tab-labels').addEventListener('click', e => {
+    const label = e.target.closest('.tab-label');
+    if (!label) return;
+    const idx = label.dataset.tab;
+    document.querySelectorAll('.tab-label').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.exp-panel').forEach(p => p.classList.remove('active'));
+    label.classList.add('active');
+    document.querySelector(`.exp-panel[data-panel="${idx}"]`).classList.add('active');
+  });
+
+  // Scroll fade-in
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cross the Road</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      color: #eee;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      letter-spacing: 3px;
+      color: #e2b96f;
+      text-shadow: 0 0 12px #e2b96f88;
+    }
+
+    #hud {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+
+    #hud span { color: #a8d8ea; }
+    #hud strong { color: #fff; }
+
+    #canvas-wrapper {
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      border: 3px solid #444;
+      border-radius: 4px;
+      box-shadow: 0 0 30px #0006;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 30, 0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      border-radius: 2px;
+    }
+
+    #overlay h2 {
+      font-size: 2rem;
+      letter-spacing: 2px;
+    }
+
+    #overlay p {
+      font-size: 1rem;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    #overlay button {
+      margin-top: 8px;
+      padding: 10px 36px;
+      font-size: 1.1rem;
+      font-family: inherit;
+      background: #e2b96f;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      letter-spacing: 1px;
+      transition: background 0.15s;
+    }
+
+    #overlay button:hover { background: #f0cc8a; }
+
+    #controls-hint {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>CROSS THE ROAD</h1>
+<div id="hud">
+  <div><span>Score </span><strong id="score-display">0</strong></div>
+  <div><span>Best </span><strong id="best-display">0</strong></div>
+  <div><span>Lives </span><strong id="lives-display">3</strong></div>
+  <div><span>Level </span><strong id="level-display">1</strong></div>
+</div>
+
+<div id="canvas-wrapper">
+  <canvas id="canvas"></canvas>
+  <div id="overlay">
+    <h2 style="color:#e2b96f">CROSS THE ROAD</h2>
+    <p>Dodge the cars and trucks.<br>Reach the safe zone at the top to score!</p>
+    <button id="start-btn">START GAME</button>
+  </div>
+</div>
+
+<div id="controls-hint">Arrow keys or WASD to move</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const COLS       = 13;
+const ROWS       = 15;   // total tile rows
+const TILE       = 48;
+const W          = COLS * TILE;
+const H          = ROWS * TILE;
+
+// Row types (top = row 0)
+const SAFE_TOP   = 0;          // goal / safe zone
+const ROAD_START = 1;
+const ROAD_END   = 10;
+const SAFE_MID   = 11;         // middle safe strip  (unused lane indices 11)
+const ROAD2_START= 12;         // (future extension)
+const SAFE_BOT   = ROWS - 1;   // row 14 — player start row
+
+// Lane config: speed in px/s, direction, vehicle type density
+const LANE_CONFIGS = [
+  // row 0: goal
+  null,
+  // rows 1-5: traffic band 1
+  { speed: 110, dir:  1, type: 'car',   density: 3 },
+  { speed:  90, dir: -1, type: 'truck', density: 2 },
+  { speed: 140, dir:  1, type: 'car',   density: 4 },
+  { speed:  80, dir: -1, type: 'car',   density: 3 },
+  { speed: 120, dir:  1, type: 'truck', density: 2 },
+  // row 6: median strip
+  null,
+  // rows 7-11: traffic band 2
+  { speed: 100, dir: -1, type: 'car',   density: 3 },
+  { speed: 150, dir:  1, type: 'car',   density: 4 },
+  { speed:  75, dir: -1, type: 'truck', density: 2 },
+  { speed: 130, dir:  1, type: 'car',   density: 3 },
+  { speed:  95, dir: -1, type: 'car',   density: 3 },
+  // row 12: pavement
+  null,
+  // row 13: sidewalk (minor hazard strip)
+  { speed:  60, dir:  1, type: 'bike',  density: 2 },
+  // row 14: start
+  null,
+];
+
+const VEHICLE_W = { car: 2.2, truck: 3.2, bike: 1.0 };  // in tiles
+
+const COLORS = {
+  goal:    '#2ecc71',
+  median:  '#888',
+  road:    '#333',
+  pavement:'#555',
+  start:   '#4a7c59',
+  stripe:  '#f1c40f',
+  car:  ['#e74c3c','#3498db','#9b59b6','#e67e22','#1abc9c','#e91e63'],
+  truck:['#c0392b','#2980b9','#7f8c8d','#d35400'],
+  bike: ['#f39c12','#16a085'],
+  player: '#f1c40f',
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+canvas.width  = W;
+canvas.height = H;
+
+let player, vehicles, score, best, lives, level, state, lastTime, invincible;
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function resetPlayer() {
+  player = { col: Math.floor(COLS / 2), row: SAFE_BOT, blink: 0 };
+}
+
+function spawnVehicles(lvl) {
+  vehicles = [];
+  LANE_CONFIGS.forEach((cfg, row) => {
+    if (!cfg) return;
+    const w = VEHICLE_W[cfg.type] * TILE;
+    const gap = W / cfg.density;
+    for (let i = 0; i < cfg.density; i++) {
+      const baseX = i * gap;
+      // spread them out; randomise a bit
+      const x = cfg.dir === 1
+        ? (baseX - W + Math.random() * gap * 0.5) % W
+        : (baseX + Math.random() * gap * 0.5) % W;
+      vehicles.push({
+        x,
+        row,
+        w,
+        speed: cfg.speed * (1 + (lvl - 1) * 0.12),
+        dir:   cfg.dir,
+        type:  cfg.type,
+        color: COLORS[cfg.type][Math.floor(Math.random() * COLORS[cfg.type].length)],
+      });
+    }
+  });
+}
+
+function startGame() {
+  score      = 0;
+  lives      = 3;
+  level      = 1;
+  invincible = 0;
+  state      = 'playing';
+  resetPlayer();
+  spawnVehicles(level);
+  document.getElementById('overlay').style.display = 'none';
+  updateHUD();
+  lastTime = null;
+  requestAnimationFrame(loop);
+}
+
+function updateHUD() {
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('best-display').textContent  = best || 0;
+  document.getElementById('lives-display').textContent = lives;
+  document.getElementById('level-display').textContent = level;
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (keys[e.code]) return;   // ignore held keys — one step per press
+  keys[e.code] = true;
+
+  if (state !== 'playing') return;
+
+  const prev = { col: player.col, row: player.row };
+
+  if (e.code === 'ArrowUp'    || e.code === 'KeyW') { player.row--; e.preventDefault(); }
+  if (e.code === 'ArrowDown'  || e.code === 'KeyS') { player.row++; e.preventDefault(); }
+  if (e.code === 'ArrowLeft'  || e.code === 'KeyA') { player.col--; e.preventDefault(); }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') { player.col++; e.preventDefault(); }
+
+  // Clamp
+  player.col = Math.max(0, Math.min(COLS - 1, player.col));
+  player.row = Math.max(0, Math.min(ROWS - 1, player.row));
+
+  // Reached goal
+  if (player.row === 0) {
+    score++;
+    if (score > (best || 0)) best = score;
+    updateHUD();
+    // Level up every 5 crossings
+    if (score % 5 === 0) {
+      level++;
+      spawnVehicles(level);
+    }
+    resetPlayer();
+  }
+});
+
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+// ─── Game Loop ────────────────────────────────────────────────────────────────
+function loop(ts) {
+  if (state !== 'playing') return;
+  const dt = lastTime ? (ts - lastTime) / 1000 : 0;
+  lastTime = ts;
+
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  // Move vehicles
+  vehicles.forEach(v => {
+    v.x += v.speed * v.dir * dt;
+    if (v.dir === 1 && v.x > W)           v.x = -v.w;
+    if (v.dir === -1 && v.x + v.w < 0)    v.x = W;
+  });
+
+  if (invincible > 0) { invincible -= dt; return; }
+
+  // Collision: player tile bounding box (slightly inset for fairness)
+  const px = player.col * TILE + 6;
+  const py = player.row * TILE + 6;
+  const pw = TILE - 12;
+  const ph = TILE - 12;
+
+  for (const v of vehicles) {
+    if (v.row !== player.row) continue;
+    const vx = v.x;
+    const vy = v.row * TILE + 4;
+    const vw = v.w;
+    const vh = TILE - 8;
+    if (px < vx + vw && px + pw > vx && py < vy + vh && py + ph > vy) {
+      hit();
+      return;
+    }
+  }
+}
+
+function hit() {
+  lives--;
+  updateHUD();
+  if (lives <= 0) {
+    gameOver();
+  } else {
+    invincible = 1.8;
+    resetPlayer();
+  }
+}
+
+function gameOver() {
+  state = 'over';
+  const ov = document.getElementById('overlay');
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <h2 style="color:#e74c3c">GAME OVER</h2>
+    <p>You crossed <strong style="color:#fff">${score}</strong> time${score !== 1 ? 's' : ''}.<br>
+    Best: <strong style="color:#fff">${best}</strong></p>
+    <button id="start-btn">PLAY AGAIN</button>
+  `;
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function drawLane(row) {
+  const cfg = LANE_CONFIGS[row];
+  const y   = row * TILE;
+
+  if (row === 0) {
+    // Goal
+    ctx.fillStyle = COLORS.goal;
+    ctx.fillRect(0, y, W, TILE);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.font = 'bold 14px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('SAFE ZONE', W / 2, y + TILE / 2 + 5);
+  } else if (row === ROWS - 1) {
+    // Start
+    ctx.fillStyle = COLORS.start;
+    ctx.fillRect(0, y, W, TILE);
+  } else if (!cfg) {
+    // Median / pavement
+    ctx.fillStyle = row === 6 ? COLORS.median : COLORS.pavement;
+    ctx.fillRect(0, y, W, TILE);
+    // Dashed center line on median
+    if (row === 6) {
+      ctx.fillStyle = '#ffd';
+      for (let x = 0; x < W; x += 28) ctx.fillRect(x, y + TILE / 2 - 2, 16, 4);
+    }
+  } else {
+    // Road
+    ctx.fillStyle = COLORS.road;
+    ctx.fillRect(0, y, W, TILE);
+    // Lane dashes
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    for (let x = 0; x < W; x += 28) ctx.fillRect(x, y + TILE - 2, 16, 3);
+    // Direction arrow hint
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(cfg.dir === 1 ? '→' : '←', W / 2, y + TILE / 2 + 7);
+  }
+}
+
+function drawVehicle(v) {
+  const x = v.x;
+  const y = v.row * TILE + 3;
+  const h = TILE - 6;
+
+  // Body
+  ctx.fillStyle = v.color;
+  ctx.beginPath();
+  ctx.roundRect(x, y, v.w, h, 5);
+  ctx.fill();
+
+  // Windshield
+  ctx.fillStyle = 'rgba(200,240,255,0.55)';
+  if (v.type === 'bike') {
+    ctx.fillRect(x + v.w * 0.2, y + h * 0.15, v.w * 0.6, h * 0.4);
+  } else {
+    const wx = v.dir === 1 ? x + v.w * 0.55 : x + v.w * 0.1;
+    ctx.fillRect(wx, y + h * 0.15, v.w * 0.3, h * 0.5);
+  }
+
+  // Wheels
+  ctx.fillStyle = '#111';
+  const wy1 = y + h * 0.1;
+  const wy2 = y + h * 0.65;
+  const wh  = h * 0.22;
+  const ww  = 7;
+  ctx.fillRect(x + 6,       wy1, ww, wh);
+  ctx.fillRect(x + v.w - 13, wy1, ww, wh);
+  if (v.type !== 'bike') {
+    ctx.fillRect(x + 6,       wy2, ww, wh);
+    ctx.fillRect(x + v.w - 13, wy2, ww, wh);
+  }
+
+  // Headlights / taillights
+  const lightX = v.dir === 1 ? x + v.w - 5 : x + 2;
+  const tailX  = v.dir === 1 ? x + 2 : x + v.w - 5;
+  ctx.fillStyle = '#ffe88a';
+  ctx.fillRect(lightX, y + 5, 3, 8);
+  ctx.fillStyle = '#ff4444';
+  ctx.fillRect(tailX,  y + 5, 3, 8);
+}
+
+function drawPlayer() {
+  if (invincible > 0 && Math.floor(invincible * 8) % 2 === 0) return; // blink
+
+  const x = player.col * TILE;
+  const y = player.row * TILE;
+  const s = TILE;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(x + s / 2, y + s - 4, s * 0.35, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = COLORS.player;
+  ctx.beginPath();
+  ctx.ellipse(x + s / 2, y + s / 2, s * 0.28, s * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.strokeStyle = COLORS.player;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  // front legs
+  ctx.beginPath(); ctx.moveTo(x + s*0.3, y + s*0.55); ctx.lineTo(x + s*0.1, y + s*0.38); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + s*0.7, y + s*0.55); ctx.lineTo(x + s*0.9, y + s*0.38); ctx.stroke();
+  // back legs
+  ctx.beginPath(); ctx.moveTo(x + s*0.3, y + s*0.65); ctx.lineTo(x + s*0.08, y + s*0.82); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + s*0.7, y + s*0.65); ctx.lineTo(x + s*0.92, y + s*0.82); ctx.stroke();
+
+  // Eyes
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x + s*0.38, y + s*0.38, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + s*0.62, y + s*0.38, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x + s*0.39, y + s*0.37, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + s*0.63, y + s*0.37, 1.5, 0, Math.PI*2); ctx.fill();
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Lanes
+  for (let row = 0; row < ROWS; row++) drawLane(row);
+
+  // Vehicles
+  vehicles.forEach(drawVehicle);
+
+  // Player
+  drawPlayer();
+}
+
+// Initial render so canvas isn't blank before start
+for (let row = 0; row < ROWS; row++) drawLane(row);
+</script>
+</body>
+</html>
