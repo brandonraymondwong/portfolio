@@ -1,0 +1,6 @@
+{
+  "name": "ghassangpt",
+  "rewrites": [
+    { "source": "/", "destination": "/ghassangpt.html" }
+  ]
+}
