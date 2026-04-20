@@ -1,6 +1,6 @@
 {
   "name": "ghassangpt",
-  "rewrites": [
-    { "source": "/", "destination": "/ghassangpt.html" }
+  "routes": [
+    { "src": "/", "dest": "/ghassangpt.html" }
   ]
 }
